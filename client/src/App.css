@@ -1,0 +1,12 @@
+body { background: linear-gradient(to bottom, #f8f9fa, #e9ecef); font-family: 'Segoe UI', sans-serif; }
+.container { max-width: 960px; margin: auto; }
+.card { background-color: #fff; border: 1px solid #dee2e6; border-radius: 1.25rem; box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+h2, h4 { color: #5a189a; }
+.btn-primary { background-color: #6930c3; border-color: #6930c3; }
+.btn-success { background-color: #80ed99; border-color: #80ed99; color: #1b4332; }
+.btn-dark { background-color: #2b2d42; border-color: #2b2d42; }
+textarea.form-control{ border-radius: 0.8rem; padding: .8rem; }
+img.img-fluid{ border-radius: 1rem; transition: transform .3s ease; }
+img.img-fluid:hover{ transform: scale(1.04); }
+video{ border-radius: 1rem; }
+@media (max-width: 768px){ .btn{ width: 100%; margin-top: .75rem; } }
