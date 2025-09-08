@@ -10,7 +10,10 @@ export default function Step2Images({ onNext, script, setImages }) {
   const generate = async () => {
     setLoading(true);
     try {
-      const r = await axios.post('/api/image', { prompt: script });
+      // use API base from env or fallback
+      const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      const r = await axios.post(`${apiBase}/api/image`, { prompt: script });
+
       const imgs = r.data?.images || [];
       const prs  = r.data?.prompts || [];
       setImages(imgs);              // pass to next step
@@ -18,7 +21,7 @@ export default function Step2Images({ onNext, script, setImages }) {
       setPrompts(prs);
       onNext();                     // move to Step 3
     } catch (e) {
-      console.error(e);
+      console.error("Image generation failed:", e);
       setPreviewImages([]);
       setPrompts([]);
     } finally {

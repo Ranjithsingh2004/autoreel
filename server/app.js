@@ -1,29 +1,68 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-import scriptRoutes from './routes/script.js';
-import imageRoutes from './routes/image.js';
-import videoRoutes from './routes/video.js';
-import subtitleRoutes from './routes/subtitle.js';
-
+import dotenv from "dotenv";
 dotenv.config();
+
+import express from "express";
+import cors from "cors";
+import axios from "axios";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '4mb' }));
+app.use(express.json());
 
-// serve static demo assets (e.g., placeholder video) from /public as /static
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use('/static', express.static(path.join(__dirname, 'public')));
+const FAL_KEY = process.env.FAL_KEY;
+if (!FAL_KEY) {
+  console.error("Fal.ai API Key not found. Add FAL_KEY in .env");
+}
 
-app.use('/api/script', scriptRoutes);
-app.use('/api/image', imageRoutes);
-app.use('/api/video', videoRoutes);
-app.use('/api/subtitle', subtitleRoutes);
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+if (!OPENROUTER_KEY) {
+  console.error("OpenRouter API Key not found. Add OPENROUTER_API_KEY in .env");
+}
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
+// ---------------- SCRIPT GENERATOR ROUTE ----------------
+app.post("/api/script", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "openai/gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.json({ script: response.data.choices[0].message.content });
+  } catch (err) {
+    console.error("OpenRouter request failed:", err.response?.data || err.message);
+    res.status(500).json({ error: "Script generation failed" });
+  }
+});
+
+// ---------------- IMAGE GENERATOR ROUTE ----------------
+app.post("/api/image", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    const response = await axios.post(
+      "https://api.fal.ai/v1/images/generate",
+      { prompt },
+      { headers: { Authorization: `Bearer ${FAL_KEY}` } }
+    );
+
+    res.json({
+      images: response.data.images.map(img => img.url),
+      prompts: [prompt]
+    });
+  } catch (err) {
+    console.error("Fal.ai request failed:", err.response?.data || err.message);
+    res.status(500).json({ error: "Image generation failed" });
+  }
+});
+
+app.listen(5000, () => console.log("Server running on http://localhost:5000"));

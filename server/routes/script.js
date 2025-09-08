@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const router = express.Router();
 
+console.log('OpenRouter API Key:', process.env.OPENROUTER_API_KEY ? 'Loaded' : 'Not Found');
+
+
 // Uses OpenRouter chat completions to expand/clean the user's script
 router.post('/', async (req, res) => {
   try {
@@ -10,6 +13,9 @@ router.post('/', async (req, res) => {
     if (!prompt || !prompt.trim()) {
       return res.status(400).json({ error: 'prompt is required' });
     }
+
+    console.log("Using OpenRouter Key:", process.env.OPENROUTER_API_KEY?.slice(0,10));
+
 
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
