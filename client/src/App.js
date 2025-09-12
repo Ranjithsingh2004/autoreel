@@ -1,11 +1,13 @@
 import React from 'react';
-import WizardLayout from './components/WizardLayout';
 import './App.css';
+import AutoreelGeneration from './components/AutoreelGeneration';
 
-export default function App() {
+function App() {
   return (
     <div className="App">
-      <WizardLayout />
+      <AutoreelGeneration />
     </div>
   );
 }
+
+export default App;
