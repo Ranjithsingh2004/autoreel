@@ -61,15 +61,43 @@ app.post("/api/script", async (req, res) => {
     console.log("🎬 Generating script for:", prompt);
     
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const enhancedPrompt = `Create a compelling video script for: ${prompt}. 
-    Format it as a narrative with clear scenes. Keep it engaging and under 2 minutes when spoken.
-    Include visual descriptions for each scene that can be used for image generation.
-    
-    Structure:
-    Scene 1: [Visual description]
-    Scene 2: [Visual description]
-    Scene 3: [Visual description]
-    Scene 4: [Visual description]`;
+    const enhancedPrompt = `You are a professional social media content creator specializing in viral short-form videos (Reels/TikTok/Shorts).
+
+Create an engaging, hook-driven video script for: "${prompt}"
+
+REQUIREMENTS:
+1. Start with a POWERFUL HOOK in the first 3 seconds that makes viewers stop scrolling
+2. Keep the total length under 60 seconds when spoken (150-180 words max)
+3. Use a conversational, energetic tone that connects with viewers
+4. Include emotional triggers (curiosity, surprise, inspiration, or relatability)
+5. End with a strong CTA (call-to-action) that encourages engagement
+6. Make it highly visual and dynamic
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+
+[HOOK - First 3 seconds]
+Write an attention-grabbing opening line that creates curiosity or surprise.
+
+[MAIN CONTENT - 30-40 seconds]
+Scene 1: [Describe what viewers see - be specific and cinematic]
+Narration: [What's being said]
+
+Scene 2: [Describe visual - include colors, lighting, mood]
+Narration: [What's being said]
+
+Scene 3: [Describe visual - focus on key action or emotion]
+Narration: [What's being said]
+
+Scene 4: [Describe final visual - create impact]
+Narration: [What's being said]
+
+[OUTRO - Last 10 seconds]
+Final message with clear CTA (like, comment, follow, share)
+
+VISUAL STYLE NOTES:
+List 3-4 specific visual elements to make the video stand out (lighting, colors, camera angles, effects, mood)
+
+Remember: Make it scroll-stopping, emotionally engaging, and highly shareable!`;
     
     let retries = 3;
     let result;
