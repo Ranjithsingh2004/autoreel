@@ -6,7 +6,7 @@ import cors from "cors";
 import axios from "axios";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { v2 as cloudinary } from "cloudinary";
-import * as fal from "@fal-ai/client";
+import { fal } from "@fal-ai/client";
 
 const app = express();
 
@@ -32,10 +32,10 @@ cloudinary.config({
   api_secret: CLOUDINARY_API_SECRET,
 });
 
-// Configure Fal.ai if API key exists
+// Configure Fal.ai with credentials
 if (FAL_KEY) {
   fal.config({
-    credentials: FAL_KEY,
+    credentials: FAL_KEY
   });
   console.log("✅ Fal.ai configured successfully");
 } else {
@@ -60,7 +60,7 @@ app.post("/api/script", async (req, res) => {
     
     console.log("🎬 Generating script for:", prompt);
     
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const enhancedPrompt = `Create a compelling video script for: ${prompt}. 
     Format it as a narrative with clear scenes. Keep it engaging and under 2 minutes when spoken.
     Include visual descriptions for each scene that can be used for image generation.
@@ -178,17 +178,17 @@ app.post("/api/test-image", async (req, res) => {
 app.post("/api/video", async (req, res) => {
   try {
     const { images, prompt } = req.body;
-    
+
     console.log("🎬 Starting video generation...");
-    
+
     if (!images || images.length === 0) {
       return res.status(400).json({ error: "No images provided for video generation" });
     }
-    
+
     if (!FAL_KEY) {
       return res.status(500).json({ error: "Fal.ai API key not configured. Please add FAL_KEY to .env file." });
     }
-    
+
     // Upload image to Cloudinary to get public URL
     let imageUrl = images[0];
     if (images[0].startsWith('data:')) {
@@ -196,6 +196,7 @@ app.post("/api/video", async (req, res) => {
       const uploadResult = await cloudinary.uploader.upload(images[0], {
         resource_type: "image",
         folder: "autoreel",
+        timeout: 120000, // 2 minute timeout
         transformation: [
           { width: 1024, height: 1024, crop: "fill" }
         ]
@@ -203,77 +204,42 @@ app.post("/api/video", async (req, res) => {
       imageUrl = uploadResult.secure_url;
       console.log("✅ Image uploaded:", imageUrl);
     }
-    
-    console.log("🎥 Generating video with Fal.ai...");
-    
-    // Use Fal.ai stable-video-diffusion
-    const result = await fal.subscribe("fal-ai/stable-video-diffusion", {
+
+    console.log("🎥 Generating video with Fal.ai Luma Dream Machine...");
+
+    // Use Fal.ai Luma Dream Machine v1.5 - more generous free tier
+    const result = await fal.subscribe("fal-ai/luma-dream-machine/image-to-video", {
       input: {
-        image_url: imageUrl,
-        motion_bucket_id: 127,
-        cond_aug: 0.02,
-        steps: 25,
-        fps: 6,
-      },
-      logs: true,
-      onQueueUpdate: (update) => {
-        console.log("📊 Queue status:", update.status);
-      },
+        prompt: prompt || "Transform this image into a dynamic video",
+        image_url: imageUrl
+      }
     });
-    
+
     console.log("✅ Video generation completed");
-    
+
     // Extract video URL with multiple fallback options
-    const videoUrl = result.video?.url || 
-                    result.data?.video?.url || 
-                    result.url || 
+    const videoUrl = result.video?.url ||
+                    result.data?.video?.url ||
+                    result.url ||
                     result.video_url ||
                     result.output?.video?.url;
-    
+
     if (!videoUrl) {
       console.error("❌ No video URL in result:", JSON.stringify(result, null, 2));
       throw new Error("No video URL returned from Fal.ai. Please try again.");
     }
-    
+
     console.log("🎉 Video generated successfully:", videoUrl);
-    
-    res.json({ 
+
+    res.json({
       video_url: videoUrl,
       duration: result.video?.duration || result.data?.video?.duration || 3,
       success: true
     });
-    
+
   } catch (err) {
     console.error("❌ Video generation failed:", err);
-    
-    if (err.message?.includes('subscribe') || err.message?.includes('not a function')) {
-      // Fallback to run method if subscribe fails
-      try {
-        console.log("🔄 Trying fallback method...");
-        const result = await fal.run("fal-ai/stable-video-diffusion", {
-          input: {
-            image_url: imageUrl,
-            motion_bucket_id: 127,
-            cond_aug: 0.02,
-            steps: 25,
-            fps: 6,
-          }
-        });
-        
-        const videoUrl = result.video?.url || result.data?.video?.url || result.url;
-        if (videoUrl) {
-          console.log("✅ Fallback method succeeded");
-          return res.json({ 
-            video_url: videoUrl,
-            duration: result.video?.duration || 3,
-            success: true
-          });
-        }
-      } catch (fallbackErr) {
-        console.error("❌ Fallback method also failed:", fallbackErr);
-      }
-    }
-    
+
     if (err.message?.includes('API_KEY_INVALID') || err.message?.includes('Unauthorized')) {
       res.status(401).json({ error: "Invalid Fal.ai API key. Please check your .env file." });
     } else if (err.message?.includes('quota') || err.message?.includes('429')) {
@@ -309,8 +275,8 @@ app.post("/api/upload", async (req, res) => {
 
 // ---------------- HEALTH CHECK ROUTE ----------------
 app.get("/api/health", (req, res) => {
-  res.json({ 
-    status: "OK", 
+  res.json({
+    status: "OK",
     timestamp: new Date().toISOString(),
     apis: {
       gemini: !!GEMINI_API_KEY,
@@ -327,17 +293,15 @@ app.get("/api/test-fal", async (req, res) => {
     if (!FAL_KEY) {
       return res.status(500).json({ error: "FAL_KEY not configured" });
     }
-    
-    // Test Fal.ai connection
-    const models = await fal.list();
-    res.json({ 
-      status: "Fal.ai connection successful", 
-      availableModels: models?.slice(0, 5) || "Unable to fetch models"
+
+    res.json({
+      status: "Fal.ai connection successful",
+      configured: true
     });
   } catch (err) {
-    res.status(500).json({ 
-      error: "Fal.ai connection failed", 
-      details: err.message 
+    res.status(500).json({
+      error: "Fal.ai connection failed",
+      details: err.message
     });
   }
 });
@@ -349,7 +313,7 @@ app.listen(PORT, () => {
   console.log("📝 Gemini AI: Script Generation");
   console.log("🎨 Stability AI: Image Generation (25/day limit)");
   console.log("🧪 Test Images: /api/test-image (no quota used)");
-  console.log("🎬 Fal.ai: Video Generation");
+  console.log("🎬 Fal.ai Luma Dream Machine: Video Generation");
   console.log("☁️ Cloudinary: Media Storage");
   console.log("🔍 Health Check: /api/health");
   console.log("🧪 Fal.ai Test: /api/test-fal");
